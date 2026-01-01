@@ -36,8 +36,8 @@ def list_tasks_from_notion(args):
       "filter": {
         "property": "Due Date",
         "date": {
-          "on_or_after": today,
-          "on_or_before": daysAhead
+          "on_or_after": str(today),
+          "on_or_before": str(daysAhead)
         }
       }
     })
@@ -60,7 +60,7 @@ def list_tasks_from_notion(args):
         search_object = Task(
             title=result["properties"][TaskPropertyKey]["title"][0]["plain_text"],
             due_date=result["properties"][DueDatePropertyKey]["date"]["start"],
-            priority=result["properties"][PriorityPropertyKey]["date"]["start"],
+            priority=result["properties"][PriorityPropertyKey]["select"]["name"],
             labels=", ".join([label["name"] for label in result["properties"][LabelsPropertyKey]["multi_select"]]),
             assignee=", ".join([label["name"] for label in result["properties"][AssigneePropertyKey]["multi_select"]])
         )

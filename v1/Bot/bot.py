@@ -1,4 +1,5 @@
 from datetime import date
+from dotenv import load_dotenv
 
 import discord
 from discord.ext import commands
@@ -6,24 +7,20 @@ import os
 
 from prettytable import PrettyTable
 
-from addRecord import addData, addPDF, addGenericFile
-import validators
-from duplicateCheck import doesItExist, amIThere
-from tagGiver import giveTags, get_day_ahead, giveTagsFileUpload
-from search import Task, list_tasks_from_notion
-from delete import deleteMe
-#from uploadFiles import downloadFile
-from getTitle import giveTitle
-import asyncio
+from tagGiver import get_day_ahead
+from search import list_tasks_from_notion
 
+load_dotenv()
 prefix = ""
 try:
     print(os.environ['PREFIX'])
     prefix = str(os.environ['PREFIX'])
 except:
-    prefix = '!'
+    prefix = '?'
 
-bot = commands.Bot(command_prefix=prefix, help_command=None)
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(command_prefix=prefix, help_command=None, intents=intents)
 bot.remove_command('help')
 
 @bot.command(name="list_tasks")
@@ -37,12 +34,13 @@ async def list_tasks(ctx, *args):
         if (len(search_results) > 0):
             #Found a result
             embed = discord.Embed(title=f"Task List", description=f"Tasks until {date.today() + days_ahead}", color=discord.Color.green())
-            table = PrettyTable()
-            table.field_name = ["Task", "Due Date", "Priority", "Labels", "Assigned To"]
+            table = PrettyTable(["Task", "Due Date", "Priority", "Labels", "Assigned To"])
 
             for res in search_results:
                 table.add_row([res.title, res.due_date, res.priority, res.labels, res.assignee])
-            await ctx.send(embed=f"```\n{table.get_string()}\n```")
+
+            embed.add_field(name="Task Table", value=table, inline=False)
+            await ctx.send(embed=embed)
         else:
             #No results
             embed = discord.Embed(title="No Results", description="No tasks ahead. Relax Yourself!", color=discord.Color.green())
@@ -71,8 +69,7 @@ async def on_ready():
 
 #Getting discord token and running the bot
 try:
-    print(os.environ['DISCORD_AUTH'])
-    token = str(os.environ['DISCORD_AUTH'])
+    token = str(os.environ['DISCORD_TOKEN'])
     bot.run(token)
-except:
-    print("Invalid token")
+except Exception as e:
+    print(e)

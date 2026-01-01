@@ -8,6 +8,7 @@ charset-normalizer
 decorator
 discord
 discord.py
+dotenv
 fuzzywuzzy
 greenlet
 idna
