@@ -28,8 +28,14 @@ def giveTags(args):
     print(final_tag)
     return final_tag
 
-def get_day_ahead(args):
-    return datetime.timedelta(days=int(args[0]))
+def get_days_ahead(args, idx=0):
+    return datetime.timedelta(days=int(args[idx]))
+
+def get_remind_days(args, idx=0):
+    return int(args[idx])
+
+def get_remind_time(args, idx=0):
+    return str(args[idx])
 
 def giveTagsFileUpload(args, url):
     #Tag provided

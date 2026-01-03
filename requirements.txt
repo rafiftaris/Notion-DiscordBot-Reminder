@@ -17,6 +17,7 @@ multidict
 prettytable
 python-Levenshtein
 requests
+schedule
 six
 soupsieve
 SQLAlchemy

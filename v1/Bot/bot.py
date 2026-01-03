@@ -1,4 +1,9 @@
+import asyncio
+import threading
+import time
 from datetime import date
+
+import schedule
 from dotenv import load_dotenv
 
 import discord
@@ -7,7 +12,7 @@ import os
 
 from prettytable import PrettyTable
 
-from tagGiver import get_day_ahead
+from tagGiver import get_days_ahead, get_remind_days, get_remind_time
 from search import list_tasks_from_notion
 
 load_dotenv()
@@ -20,7 +25,7 @@ except:
 
 intents = discord.Intents.default()
 intents.message_content = True
-bot = commands.Bot(command_prefix=prefix, help_command=None, intents=intents)
+bot = commands.Bot(command_prefix=prefix, help_command=None, intents=intents, allowed_mentions=discord.AllowedMentions(everyone=True))
 bot.remove_command('help')
 
 @bot.command(name="list_tasks")
@@ -28,33 +33,37 @@ async def list_tasks(ctx, *args):
     """Returns all tasks in specified due date"""
     if (len(args) > 0):
         #Check if the tag exists
-        days_ahead = get_day_ahead(args)
-        search_results = list_tasks_from_notion(days_ahead)
-
-        if (len(search_results) > 0):
-            #Found a result
-            embed = discord.Embed(title=f"Task List", description=f"Tasks until {date.today() + days_ahead}", color=discord.Color.green())
-            table = PrettyTable(["Task", "Due Date", "Priority", "Labels", "Assigned To"])
-
-            for res in search_results:
-                table.add_row([res.title, res.due_date, res.priority, res.labels, res.assignee])
-
-            embed.add_field(name="Task Table", value=table, inline=False)
-            await ctx.send(embed=embed)
-        else:
-            #No results
-            embed = discord.Embed(title="No Results", description="No tasks ahead. Relax Yourself!", color=discord.Color.green())
-            await ctx.send(embed=embed)
+        days_ahead = get_days_ahead(args)
+        await ctx.send(embed=get_task_lists(days_ahead))
 
     else:
         #No tag provided
         embed = discord.Embed(title="Invalid Args", description="Day ahead is not defined", color=discord.Color.red())
         await ctx.send(embed=embed)
 
+@bot.command(name="remind")
+async def remind(ctx, *args):
+    """Returns all tasks in specified due date"""
+    if (len(args) <= 3):
+        #Check if the tag exists
+        remind_days = get_remind_days(args)
+        remind_time = get_remind_time(args,1)
+        days_ahead = get_days_ahead(args, 2)
+
+        schedule.every(remind_days).days.at(remind_time).do(lambda: scheduled_get_task_list(days_ahead))
+
+        embed = discord.Embed(title="Reminder set", description=f"I will remind you tasks for {days_ahead} days ahead every {remind_days} days at {remind_time}", color=discord.Color.green())
+        await ctx.send(embed=embed)
+    else:
+        #No tag provided
+        embed = discord.Embed(title="Invalid Args", description=f"Missing arguments, see {prefix}help", color=discord.Color.red())
+        await ctx.send(embed=embed)
+
 @bot.command()
 async def help(ctx):
     """Give commands list"""
-    commands = {f"```{prefix}list_tasks <DaysAhead>```": "List of tasks with with due date from today until <DaysAhead>"}
+    commands = {f"```{prefix}list_tasks <DaysAhead>```": "List of tasks with with due date from today until <DaysAhead>",
+                f"```{prefix}remind <RemindDays> <RemindTime> <DaysAhead>```": "Keep sending reminder of tasks with with due date from today until <DaysAhead>, every <RemindDays> days at <RemindTime>"}
 
     embed = discord.Embed(title="List of commands:", description="These are the commands to use with this bot", color=discord.Color.green())
     count = 1
@@ -66,6 +75,41 @@ async def help(ctx):
 @bot.event
 async def on_ready():
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{prefix}help"))
+    threading.Thread(target=run_scheduler, daemon=True).start()
+
+def scheduled_get_task_list(days_ahead):
+    asyncio.run_coroutine_threadsafe(async_get_task_list(days_ahead), bot.loop)
+
+async def async_get_task_list(days_ahead):
+    channel = bot.get_channel(int(os.environ['CHANNEL_ID']))
+    if channel is None:
+        return
+
+    await channel.send(embed=get_task_lists(days_ahead))
+
+def get_task_lists(days_ahead):
+    search_results = list_tasks_from_notion(days_ahead)
+
+    if (len(search_results) > 0):
+        # Found a result
+        embed = discord.Embed(title=f"Task List", description=f"Tasks until {date.today() + days_ahead} @everyone",
+                              color=discord.Color.green())
+        table = PrettyTable(["Task", "Due Date", "Priority", "Labels", "Assigned To"])
+
+        for res in search_results:
+            table.add_row([res.title, res.due_date, res.priority, res.labels, res.assignee])
+
+        embed.add_field(name="Task Table", value=table, inline=False)
+    else:
+        # No results
+        embed = discord.Embed(title="No Results", description="No tasks ahead. Relax Yourself!",
+                              color=discord.Color.green())
+    return embed
+
+def run_scheduler():
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
 
 #Getting discord token and running the bot
 try:
