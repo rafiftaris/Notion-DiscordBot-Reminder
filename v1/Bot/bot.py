@@ -101,7 +101,7 @@ async def async_remind_task_list():
         return
 
     try:
-        todays_tasks = list_tasks_from_notion(filter_due_date_ahead(5))
+        todays_tasks = list_tasks_from_notion(filter_due_date_ahead(0))
         if (len(todays_tasks) > 0):
             # Found a result
             embed = discord.Embed(title=f"Today's Task List", description=f"Hello @everyone! Reminder for today tasks",
@@ -118,7 +118,7 @@ async def async_remind_task_list():
 
 
     try:
-        events_7days_ahead_filter = filter_op("and",filter_due_date_ahead(40),filter_multiselect(LabelsPropertyKey,EventsLabel))
+        events_7days_ahead_filter = filter_op("and",filter_due_date_ahead(7),filter_multiselect(LabelsPropertyKey,EventsLabel))
         search_results = list_tasks_from_notion(events_7days_ahead_filter)
         if (len(search_results) > 0):
             # Found a result
