@@ -29,7 +29,7 @@ def giveTags(args):
     return final_tag
 
 def get_days_ahead(args, idx=0):
-    return datetime.timedelta(days=int(args[idx]))
+    return int(args[idx])
 
 def get_remind_days(args, idx=0):
     return int(args[idx])
