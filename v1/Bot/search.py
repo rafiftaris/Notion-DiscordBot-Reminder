@@ -33,6 +33,13 @@ class Task:
 def filter_due_date_ahead(days_ahead):
     today = date.today()
     if isinstance(days_ahead, int):
+        if days_ahead == 0:
+            return {
+                "property": "Due Date",
+                "date": {
+                  "equals": str(today)
+                }
+            }
         days_ahead = datetime.timedelta(days=days_ahead)
     date_ahead = today + days_ahead
     return {
