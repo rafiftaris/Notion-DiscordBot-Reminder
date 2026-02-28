@@ -30,23 +30,32 @@ class Task:
         self.labels = labels
         self.assignee=assignee
 
-def filter_due_date_ahead(days_ahead):
+def filter_due_date_today():
+    return {
+        "property": "Due Date",
+        "date": {
+            "equals": str(date.today())
+        }
+    }
+
+
+def filter_due_date_ahead():
     today = date.today()
-    if isinstance(days_ahead, int):
-        if days_ahead == 0:
-            return {
-                "property": "Due Date",
-                "date": {
-                  "equals": str(today)
-                }
-            }
-        days_ahead = datetime.timedelta(days=days_ahead)
+    return {
+        "property": "Due Date",
+        "date": {
+            "on_or_after": f"{today}T00:00:00+07:00"
+        }
+    }
+
+def filter_due_date_before(days_ahead):
+    today = date.today()
+    days_ahead = datetime.timedelta(days=days_ahead)
     date_ahead = today + days_ahead
     return {
         "property": "Due Date",
         "date": {
-          "on_or_after": str(today),
-          "on_or_before": str(date_ahead)
+          "on_or_before": f"{date_ahead}T00:00:00+07:00"
         }
     }
 
@@ -66,9 +75,9 @@ def filter_select(prop_key, prop_val):
         }
     }
 
-def filter_op(opkey, a, b):
+def filter_op(opkey, *vals):
     return {
-        opkey:[a,b]
+        opkey: vals
     }
 
 def list_tasks_from_notion(query):
